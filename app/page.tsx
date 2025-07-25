@@ -1,11 +1,11 @@
 "use client"
 
-import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion"
+import { motion, useScroll, useTransform, AnimatePresence, useMotionValue, useSpring } from "framer-motion"
 import { ArrowRight, MapPin, Clock, Phone, Mail, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import Image from "next/image"
-import { useRef, useState } from "react"
+import { useRef, useState, useEffect } from "react"
 
 const flavors = [
   {
@@ -67,10 +67,29 @@ export default function HomePage() {
   })
 
   const [hoveredFlavor, setHoveredFlavor] = useState<string | null>(null)
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
 
   const backgroundY = useTransform(scrollYProgress, [0, 1], ["0%", "50%"])
   const textY = useTransform(scrollYProgress, [0, 1], ["0%", "200%"])
   const mascotY = useTransform(scrollYProgress, [0, 1], ["0%", "150%"])
+
+  const mouseX = useMotionValue(0)
+  const mouseY = useMotionValue(0)
+  const springConfig = { damping: 25, stiffness: 700 }
+  const mouseXSpring = useSpring(mouseX, springConfig)
+  const mouseYSpring = useSpring(mouseY, springConfig)
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const { clientX, clientY } = e
+      setMousePosition({ x: clientX, y: clientY })
+      mouseX.set(clientX)
+      mouseY.set(clientY)
+    }
+
+    window.addEventListener("mousemove", handleMouseMove)
+    return () => window.removeEventListener("mousemove", handleMouseMove)
+  }, [mouseX, mouseY])
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -131,6 +150,19 @@ export default function HomePage() {
         }}
       >
         <Image src="/images/mascot.webp" alt="Floating Mascot" fill className="object-contain" />
+      </motion.div>
+
+      {/* Custom Cursor */}
+      <motion.div
+        className="fixed w-6 h-6 pointer-events-none z-50 mix-blend-difference"
+        style={{
+          left: mouseXSpring,
+          top: mouseYSpring,
+          translateX: "-50%",
+          translateY: "-50%",
+        }}
+      >
+        <div className="w-full h-full bg-pink-500 rounded-full opacity-50" />
       </motion.div>
 
       {/* Header */}
@@ -432,7 +464,7 @@ export default function HomePage() {
               onHoverEnd={() => setHoveredFlavor(null)}
               className="group cursor-pointer"
             >
-              <Card className="overflow-hidden border-0 bg-white shadow-xl hover:shadow-2xl transition-all duration-700 rounded-none relative group">
+              <Card className="overflow-hidden border-0 bg-white shadow-lg hover:shadow-2xl transition-all duration-500 rounded-none relative">
                 <div className="aspect-square relative overflow-hidden">
                   <AnimatePresence>
                     {flavor.popular && (
@@ -440,29 +472,15 @@ export default function HomePage() {
                         initial={{ scale: 0, rotate: -45 }}
                         animate={{ scale: 1, rotate: 0 }}
                         exit={{ scale: 0, rotate: 45 }}
-                        className="absolute top-4 right-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white px-4 py-2 text-sm font-display font-medium z-20 shadow-lg"
+                        className="absolute top-4 right-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white px-4 py-2 text-sm font-display font-medium z-10 shadow-lg"
                       >
                         Popular
                       </motion.div>
                     )}
                   </AnimatePresence>
 
-                  <motion.div
-                    whileHover={{ scale: 1.08 }}
-                    transition={{ duration: 0.7, ease: "easeOut" }}
-                    className="relative"
-                  >
-                    <Image
-                      src={flavor.image }
-                      alt={flavor.name}
-                      fill
-                      className="object-cover group-hover:brightness-110 transition-all duration-700"
-                    />
-
-                    {/* Elegant border and inner glow effects */}
-                    <div className="absolute inset-0 border-2 border-transparent group-hover:border-pink-300/50 transition-colors duration-500 pointer-events-none" />
-                    <div className="absolute inset-2 border border-white/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <motion.div whileHover={{ scale: 1.1 }} transition={{ duration: 0.6, ease: "easeOut" }}>
+                    <Image src={flavor.image || "/placeholder.svg"} alt={flavor.name} fill className="object-cover" />
                   </motion.div>
 
                   <motion.div
@@ -470,27 +488,27 @@ export default function HomePage() {
                     animate={{
                       opacity: hoveredFlavor === flavor.name ? 1 : 0,
                     }}
-                    className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent flex items-end p-6 z-15"
+                    className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-end p-6"
                   >
-                    <p className="text-white text-sm font-body font-light drop-shadow-lg">{flavor.description}</p>
+                    <p className="text-white text-sm font-body font-light">{flavor.description}</p>
                   </motion.div>
 
                   {/* Mini Mascot on Hover */}
                   <motion.div
                     initial={{ opacity: 0, scale: 0 }}
                     animate={{
-                      opacity: hoveredFlavor === flavor.name ? 0.9 : 0,
+                      opacity: hoveredFlavor === flavor.name ? 0.8 : 0,
                       scale: hoveredFlavor === flavor.name ? 1 : 0,
                     }}
-                    className="absolute top-4 left-4 w-8 h-8 z-20 drop-shadow-lg"
+                    className="absolute top-4 left-4 w-8 h-8"
                   >
                     <Image src="/images/mascot.webp" alt="Mini Mascot" fill className="object-contain" />
                   </motion.div>
                 </div>
 
-                <CardContent className="p-8 text-center bg-gradient-to-b from-white to-gray-50/30">
+                <CardContent className="p-8 text-center">
                   <motion.h3
-                    className="text-2xl font-display font-light tracking-wide"
+                    className="text-2xl font-display font-light text-gray-800 tracking-wide"
                     animate={{
                       color: hoveredFlavor === flavor.name ? "#ec4899" : "#1f2937",
                     }}
